@@ -1,3 +1,6 @@
+from collections import defaultdict
+import numpy as np
+
 class TaxiAgent:
     def __init__(
         self,
@@ -60,3 +63,6 @@ class TaxiAgent:
             self.q_values[obs][action] + self.lr * temporal_difference
         )
         self.training_error.append(temporal_difference)
+
+    def decay_epsilon(self):
+        self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)

@@ -17,11 +17,13 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
         final_epsilon=final_epsilon,
     )
 
+    episode_lengths = []
     rewards_per_episode = np.zeros(n_episodes) #aggiunta questa cosa, inizializzo tutti a zero i rewards degli espisodi
     for episode in tqdm(range(n_episodes)):
 
         state_int, info = env.reset()
 
+        steps = 0
         rewards = 0
         episode_over = False
         penalties = 0
@@ -30,7 +32,7 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
             next_state_int, reward, terminated, truncated, info = env.step(action)
             #print(f" reward from this single env.step: {reward}")
             
-
+            steps += 1
             if reward == -10 or reward == -1:
                 penalties += 1
 
@@ -46,12 +48,13 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
                 print(f"[ep{episode}] action: {action}, reward: {reward}, penalties: {penalties}")
         #print(rewards)
         agent.decay_epsilon()
+        episode_lengths.append(steps)
         rewards_per_episode[episode] = rewards # aggiunta anche qui
-    return env, agent, rewards_per_episode
+    return env, agent, rewards_per_episode, episode_lengths
 
    
 
-def visualize_training(env, agent, rewards_per_episode):
+def visualize_training(env, agent, rewards_per_episode, episode_lengths):
     rolling_length = 500
     fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
 
@@ -64,7 +67,7 @@ def visualize_training(env, agent, rewards_per_episode):
 
     # Length rolling average
     axs[1].set_title("Episode lengths")
-    lengths = np.array(env.length_queue)
+    lengths = np.array(episode_lengths)
     length_ma = np.convolve(lengths, np.ones(rolling_length), mode="same") / rolling_length
     axs[1].plot(length_ma)
 
@@ -108,13 +111,13 @@ if __name__ == "__main__":
     final_epsilon = 0.05
     epsilon_decay = (start_epsilon - final_epsilon) / (n_episodes * 0.8)
     
-    env, agent, rewards_per_episode = run(
+    env, agent, rewards_per_episode, episode_lengths= run(
         learning_rate=learning_rate,
         n_episodes=n_episodes,
         start_epsilon=start_epsilon,
         epsilon_decay=epsilon_decay,
         final_epsilon=final_epsilon,
     )
-    visualize_training(env, agent, rewards_per_episode)
+    visualize_training(env, agent, rewards_per_episode, episode_lengths)
     test_agent_visual(agent, n_episodes=3)
     env.close()

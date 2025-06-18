@@ -21,7 +21,7 @@ class TaxiAgent:
             final_epsilon: The final epsilon value
             discount_factor: The discount factor for computing the Q-value
         """
-        self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
+        self.q_values = defaultdict(lambda: np.zeros(env.observation_space.n, env.action_space.n)) # init a 500 x 6 array, ho aggiunto il primo parametro
 
         self.lr = learning_rate
         self.discount_factor = discount_factor

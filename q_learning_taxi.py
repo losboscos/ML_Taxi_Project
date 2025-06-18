@@ -60,10 +60,9 @@ def visualize_training(env, agent, rewards_per_episode, episode_lengths):
 
     # Reward rolling average
     axs[0].set_title("Episode rewards")
-    axs[0].plot(rewards_per_episode, alpha=0.3, label="Raw")
-    reward_ma = np.convolve(rewards_per_episode, np.ones(rolling_length), mode="valid") / rolling_length
-    axs[0].plot(reward_ma, color="orange", label="Moving Average")
-    axs[0].legend()
+    reward = np.array(rewards_per_episode)
+    reward_ma = np.convolve(reward, np.ones(rolling_length), mode="same") / rolling_length
+    axs[0].plot(reward_ma)
 
     # Length rolling average
     axs[1].set_title("Episode lengths")

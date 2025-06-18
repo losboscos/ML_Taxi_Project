@@ -6,7 +6,7 @@ from Agent.q_learning_taxi_agent import TaxiAgent
 from tqdm import tqdm
 
 def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
-    env = gym.make('Taxi-v3', render_mode = "human")
+    env = gym.make('Taxi-v3', render_mode = None)
     env = gym.wrappers.RecordEpisodeStatistics(env)
     agent = TaxiAgent(
         env=env,
@@ -16,35 +16,28 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
         final_epsilon=final_epsilon,
     )
 
-    rewards_per_episode = np.zeros(n_episodes) #aggiunta questa cosa, inizializzo tutti a zero i rewards degli espisodi
+    #rewards_per_episode = np.zeros(n_episodes) #aggiunta questa cosa, inizializzo tutti a zero i rewards degli espisodi
     for episode in tqdm(range(n_episodes)):
 
-        observation, info = env.reset()
-        observation = env.unwrapped.decode(observation)
+        state_int, info = env.reset()
 
         rewards = 0
         episode_over = False
         while not episode_over:
-            action = agent.get_action(env, observation)  # agent policy that uses the observation and info
-            next_observation, reward, terminated, truncated = env.step(action)
-
+            action = agent.get_action(env, state_int)  # agent policy that uses the observation and info
+            next_state_int, reward, terminated, truncated, info = env.step(action)
+            #print(f" reward from this single env.step: {reward}")
 
             rewards += reward
 
             # update the agent
-            agent.update(observation, action, reward, terminated, next_observation)
+            agent.update(state_int, action, reward, terminated, next_state_int)
 
             episode_over = terminated or truncated 
-            observation = next_observation
-
+            state_int = next_state_int
+        #print(rewards)
         agent.decay_epsilon()
-        rewards_per_episode[episode] = rewards # aggiunta anche qui
-
-
-
-    sum_rewards = np.zeros(n_episodes)  #aggiunte queste cose 
-    for t in range(n_episodes):
-        sum_rewards[t] = np.sum(rewards_per_episode[max(0, t-100):(t+1)])
+        #rewards_per_episode[episode] = rewards # aggiunta anche qui
     return env, agent
 
    
@@ -76,11 +69,11 @@ def visualize_training(env, agent):
 
 if __name__ == "__main__":
     # qui definisci i valori dei tuoi hyperparametri
-    learning_rate = 0.7
-    n_episodes = 23_000
+    learning_rate = 0.1
+    n_episodes = 20_000
     start_epsilon = 1.0
-    epsilon_decay = start_epsilon / (n_episodes / 2)
-    final_epsilon = 0.1
+    final_epsilon = 0.05
+    epsilon_decay = (start_epsilon - final_epsilon) / (n_episodes * 0.8)
     
     env, agent = run(
         learning_rate=learning_rate,

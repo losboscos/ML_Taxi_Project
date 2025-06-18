@@ -9,7 +9,7 @@ class TaxiAgent:
         initial_epsilon: float,
         epsilon_decay: float,
         final_epsilon: float,
-        discount_factor: float = 0.95,
+        discount_factor: float = 0.99,
     ):
         """Initialize a Reinforcement Learning agent with an empty dictionary
         of state-action values (q_values), a learning rate and an epsilon.
@@ -21,7 +21,11 @@ class TaxiAgent:
             final_epsilon: The final epsilon value
             discount_factor: The discount factor for computing the Q-value
         """
-        self.q_values = defaultdict(lambda: np.zeros(env.observation_space.n, env.action_space.n)) # init a 500 x 6 array, ho aggiunto il primo parametro
+        n_states  = env.observation_space.n
+        n_actions = env.action_space.n
+
+        # Q-table come matrice densa di zeri
+        self.q_values = np.zeros((n_states, n_actions))
 
         self.lr = learning_rate
         self.discount_factor = discount_factor
@@ -32,7 +36,7 @@ class TaxiAgent:
 
         self.training_error = []
 
-    def get_action(self, env, obs: tuple[int, int, int, int]) -> int:
+    def get_action(self, env, obs: int) -> int:
         """
         Returns the best action with probability (1 - epsilon)
         otherwise a random action with probability epsilon to ensure exploration.
@@ -47,11 +51,11 @@ class TaxiAgent:
         
     def update(
         self,
-        obs: tuple[int, int, int, int],
+        obs: int,
         action: int,
         reward: float,
         terminated: bool,
-        next_obs: tuple[int, int, int, int],
+        next_obs: int,
     ):
         """Updates the Q-value of an action."""
         future_q_value = (not terminated) * np.max(self.q_values[next_obs])

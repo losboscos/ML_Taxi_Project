@@ -5,6 +5,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from collections import namedtuple, deque
 from itertools import count
+import time
+
 
 import torch
 import torch.nn as nn
@@ -85,11 +87,11 @@ class DQN(nn.Module):
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
 
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 GAMMA = 0.99
 EPS_START = 1.0
 EPS_END = 0.05
-EPS_DECAY = 2500
+EPS_DECAY = 500
 TAU = 0.005
 LR = 3e-4
 
@@ -98,7 +100,7 @@ LR = 3e-4
 n_actions = env.action_space.n
 # Get the number of state observations
 state, info = env.reset()
-n_observations = env.observation_space.n
+n_observations = 4 
 
 net = DQN(n_observations, n_actions).to(device)
 
@@ -126,21 +128,40 @@ def select_action(state):
 
 
 episode_durations = []
+reward_history = []
 
 
-def plot_durations(durations, show_result=False):
-    plt.figure(1)
-    durations_t = torch.tensor(durations, dtype=torch.float)
-    plt.clf()
-    plt.title('Result' if show_result else 'Training...')
-    plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
-    plt.pause(0.001)
+def plot_metrics(durations, rewards):
+    episodes = list(range(1, len(durations) + 1))
+    plt.figure(figsize=(12, 5))
+
+    # Plot duration
+    plt.subplot(1, 2, 1)
+    plt.title("Episode Durations")
+    plt.plot(episodes, durations, alpha=0.5, label="Duration")
+    if len(durations) >= 100:
+        dur_ma = torch.tensor(durations, dtype=torch.float).unfold(0, 100, 1).mean(1).view(-1)
+        dur_ma = torch.cat((torch.zeros(99), dur_ma))
+        plt.plot(episodes, dur_ma.numpy(), label="Moving Avg (100)")
+    plt.xlabel("Episode")
+    plt.ylabel("Steps")
+    plt.legend()
+
+    # Plot rewards
+    plt.subplot(1, 2, 2)
+    plt.title("Episode Rewards")
+    plt.plot(episodes, rewards, alpha=0.5, label="Reward")
+    if len(rewards) >= 100:
+        rew_ma = torch.tensor(rewards, dtype=torch.float).unfold(0, 100, 1).mean(1).view(-1)
+        rew_ma = torch.cat((torch.zeros(99), rew_ma))
+        plt.plot(episodes, rew_ma.numpy(), label="Moving Avg (100)")
+    plt.xlabel("Episode")
+    plt.ylabel("Reward")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig("training_progress.png")
+    plt.show()
 
 def optimize_model():
     if len(memory) < BATCH_SIZE:
@@ -176,17 +197,18 @@ def optimize_model():
 if __name__ == "__main__":
     # numero di episodi più lungo se ho GPU/MPS, altrimenti breve per debug
     if torch.cuda.is_available() or torch.backends.mps.is_available():
-        num_episodes = 600
+        num_episodes = 1500
     else:
-        num_episodes = 600
+        num_episodes = 1500
 
     for i_episode in range(num_episodes):
         # 1) reset dell'ambiente e preparazione del tensore stato
         state_int, _ = env.reset()
-        state = torch.nn.functional.one_hot(
-            torch.tensor([state_int], device=device), num_classes=env.observation_space.n
-        ).float()  # → shape [1, n_states]
+        row, col, pass_idx, dest_idx = env.unwrapped.decode(state_int)  # → es: (2, 3, 0, 4)
+        state = torch.tensor([[row / 4, col / 4, pass_idx / 4, dest_idx / 3]], dtype=torch.float32, device=device)  # → shape [1, n_states]
+        
 
+        total_reward = 0
         for t in count():
             # 2) selezione azione ε-greedy
             action = select_action(state)
@@ -196,13 +218,17 @@ if __name__ == "__main__":
             done = terminated or truncated
 
             # 4) prepara il next_state (o None se done)
+            total_reward += reward
             if done:
                 next_state = torch.zeros_like(state)
             else:
-                next_state = torch.nn.functional.one_hot(
-                    torch.tensor([next_state_int], device=device),
-                    num_classes=env.observation_space.n
-                ).float()
+                row2, col2, pass_idx2, dest_idx2 = env.unwrapped.decode(next_state_int)
+                next_state = torch.tensor([[row2 / 4, col2 / 4, pass_idx2 / 4, dest_idx2 / 3]], dtype=torch.float32, device=device)
+
+            if done:
+                episode_durations.append(t + 1)
+                reward_history.append(total_reward)
+                break
 
             # 5) memorizza la transizione completa (state, action, reward, next_state, done)
             memory.push(state, action,
@@ -216,15 +242,23 @@ if __name__ == "__main__":
             # 7) ottimizzazione di un passo sulla stessa rete `net`
             optimize_model()
 
-            if done:
-                episode_durations.append(t + 1)
-                plot_durations(episode_durations)
-                break
-
     print('Complete')
-    plot_durations(episode_durations, show_result=True)
-    plt.ioff()
-    plt.show()
-    plt.ioff()
-    plt.show()
+    print('Training complete.')
 
+
+    env = gym.make("Taxi-v3", render_mode="human")
+    state_int, _ = env.reset()
+    row, col, pass_idx, dest_idx = env.unwrapped.decode(state_int)
+    state = torch.tensor([[row / 4, col / 4, pass_idx / 4, dest_idx / 3]], dtype=torch.float32, device=device)
+
+    done = False
+    while not done:
+        action = net(state).argmax(dim=1).item()
+        next_state_int, _, terminated, truncated, _ = env.step(action)
+        done = terminated or truncated
+        row2, col2, pass_idx2, dest_idx2 = env.unwrapped.decode(next_state_int)
+        state = torch.tensor([[row2 / 4, col2 / 4, pass_idx2 / 4, dest_idx2 / 3]], dtype=torch.float32, device=device)
+        time.sleep(0.05)
+
+    plot_metrics(episode_durations, reward_history)
+    env.close()

@@ -49,14 +49,13 @@ class DQN(nn.Module):
 
 # --- Hyperparameters --------------------------------------------------------
 BATCH_SIZE   = 64
-GAMMA        = 0.995
+GAMMA        = 0.985
 EPS_START    = 1.0
-EPS_END      = 0.05
-NUM_EPISODES = 7500
+EPS_END      = 0.03
+NUM_EPISODES = 10000
 EPS_DECAY    = NUM_EPISODES * 0.9
-LR           = 3e-4
+LR           = 5e-4
 MEM_CAP      = 20000
-TARGET_UPDATE = 1000  # non puoi, single NN -> ignoralo
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -182,17 +181,35 @@ if __name__ == "__main__":
     test_env = gym.make("Taxi-v3", render_mode="human")  # text-only
     test_returns = []
     for _ in range(5):
+        MAX_TEST_STEPS = 200
         s_int, _ = test_env.reset()
         state = F.one_hot(torch.tensor([s_int], device=device), n_states).float()
         tot_r = 0
         done = False
-        while not done:
-            with torch.no_grad():
-                action = policy_net(state).argmax(dim=1).view(1,1)
-            n_int, reward, term, trunc, _ = test_env.step(action.item())
-            done = term or trunc
-            tot_r += reward
-            state = F.one_hot(torch.tensor([n_int], device=device), n_states).float()
+        for epi in range(1, 6):
+            s_int, _ = test_env.reset()
+            state = F.one_hot(torch.tensor([s_int], device=device), n_states).float()
+            tot_r = 0.0
+
+            for t in range(MAX_TEST_STEPS):
+                with torch.no_grad():
+                    action = policy_net(state).argmax(dim=1).view(1,1)
+                n_int, reward, term, trunc, _ = test_env.step(action.item())
+                done = term or trunc
+                tot_r += reward
+
+                # render “human”
+                test_env.render()
+
+                # prepara next state
+                state = F.one_hot(torch.tensor([n_int], device=device), n_states).float()
+
+                if done:
+                    # appena termini, esci dal for
+                    break
+            else:
+                # eseguito solo se non c’è stato break
+                print(f"  › Test Ep {epi}: reached {MAX_TEST_STEPS} steps without finishing.")
         test_returns.append(tot_r)
     print("Test returns:", test_returns, "avg:", sum(test_returns)/len(test_returns))
 

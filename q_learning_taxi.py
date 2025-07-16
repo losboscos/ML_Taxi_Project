@@ -18,7 +18,7 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
     )
 
     episode_lengths = []
-    rewards_per_episode = np.zeros(n_episodes) #aggiunta questa cosa, inizializzo tutti a zero i rewards degli espisodi
+    rewards_per_episode = np.zeros(n_episodes) #inizializzo tutti i rewards degli espisodi a zero
     for episode in tqdm(range(n_episodes)):
 
         state_int, info = env.reset()
@@ -30,7 +30,6 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
         while not episode_over:
             action = agent.get_action(env, state_int)  # agent policy that uses the observation and info
             next_state_int, reward, terminated, truncated, info = env.step(action)
-            #print(f" reward from this single env.step: {reward}")
             
             steps += 1
             if reward == -10 or reward == -1:
@@ -46,7 +45,6 @@ def run(learning_rate, n_episodes, start_epsilon, epsilon_decay, final_epsilon):
 
             if episode < 100:
                 print(f"[ep{episode}] action: {action}, reward: {reward}, penalties: {penalties}")
-        #print(rewards)
         agent.decay_epsilon()
         episode_lengths.append(steps)
         rewards_per_episode[episode] = rewards # aggiunta anche qui

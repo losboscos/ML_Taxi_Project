@@ -49,7 +49,7 @@ class DQN(nn.Module):
 
 # --- Hyperparameters --------------------------------------------------------
 BATCH_SIZE   = 64
-GAMMA        = 0.985
+GAMMA        = 0.99
 EPS_START    = 1.0
 EPS_END      = 0.03
 NUM_EPISODES = 10000
@@ -71,7 +71,7 @@ memory      = ReplayBuffer(MEM_CAP)
 steps_done = 0
 episode_durations = []
 episode_returns   = []
-
+training_errors = []
 
 def select_action(state):
     global steps_done
@@ -101,6 +101,7 @@ def optimize_model():
         target = R + GAMMA * Q2 * (1 - D)
 
     loss = F.smooth_l1_loss(Q, target)
+    training_errors.append(loss.item())
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
@@ -174,6 +175,18 @@ if __name__ == "__main__":
     plt.savefig("plots/dqn_durations.png", dpi=200, bbox_inches="tight")
     plt.figure(2)
     plt.savefig("plots/dqn_returns.png", dpi=200, bbox_inches="tight")
+
+    plt.figure(figsize=(6,4))
+    plt.title("TD Error (Loss) over time")
+    plt.plot(training_errors, alpha=0.4, label="TD Error")
+    if len(training_errors) >= 100:
+        ma_td = [sum(training_errors[i-99:i+1])/100 for i in range(99, len(training_errors))]
+        plt.plot(range(99, len(training_errors)), ma_td, label="100-step MA")
+    plt.xlabel("Training steps")
+    plt.ylabel("TD-error (Smooth L1 Loss)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("plots/dqn_td_error.png", dpi=200, bbox_inches="tight")
     plt.show()
 
     # --- Quick test without rendering overhead ----------------------------

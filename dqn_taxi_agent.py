@@ -152,42 +152,42 @@ if __name__ == "__main__":
     print("Training complete\n")
 
     # --- Final plots (una volta sola) --------------------------------------
-    plt.figure(figsize=(12,5))
-    plt.subplot(1,2,1)
-    plt.title("Durations")
-    plt.plot(episode_durations, label="dur")
-    ma = [sum(episode_durations[i-99:i+1])/100 for i in range(99, len(episode_durations))]
-    plt.plot(range(99, len(episode_durations)), ma, label="100-epi MA")
-    plt.legend()
-
-    plt.subplot(1,2,2)
-    plt.title("Returns")
-    plt.plot(episode_returns, alpha=0.3, label="return")
-    ma2 = [sum(episode_returns[i-99:i+1])/100 for i in range(99, len(episode_returns))]
-    plt.plot(range(99, len(episode_returns)), ma2, label="100-epi MA")
-    plt.legend()
-
-    plt.tight_layout()
-    # salva i PNG
+    # --- Final combined plot: durations, returns, TD error -------------------
     import os
     os.makedirs("plots", exist_ok=True)
-    plt.figure(1)
-    plt.savefig("plots/dqn_durations.png", dpi=200, bbox_inches="tight")
-    plt.figure(2)
-    plt.savefig("plots/dqn_returns.png", dpi=200, bbox_inches="tight")
 
-    plt.figure(figsize=(6,4))
-    plt.title("TD Error (Loss) over time")
-    plt.plot(training_errors, alpha=0.4, label="TD Error")
+    fig, axs = plt.subplots(ncols=3, figsize=(18, 5))
+
+# Plot 1: Episode Durations
+    axs[0].set_title("Episode Durations")
+    axs[0].plot(episode_durations, label="Durations")
+    if len(episode_durations) >= 100:
+        ma_dur = [sum(episode_durations[i-99:i+1])/100 for i in range(99, len(episode_durations))]
+        axs[0].plot(range(99, len(episode_durations)), ma_dur, label="100-epi MA")
+    axs[0].legend()
+
+    # Plot 2: Episode Returns
+    axs[1].set_title("Episode Returns")
+    axs[1].plot(episode_returns, alpha=0.3, label="Returns")
+    if len(episode_returns) >= 100:
+        ma_ret = [sum(episode_returns[i-99:i+1])/100 for i in range(99, len(episode_returns))]
+        axs[1].plot(range(99, len(episode_returns)), ma_ret, label="100-epi MA")
+    axs[1].legend()
+
+    # Plot 3: TD Error (Loss)
+    axs[2].set_title("TD Error (Loss) over Time")
+    axs[2].plot(training_errors, alpha=0.4, label="TD Error")
     if len(training_errors) >= 100:
-        ma_td = [sum(training_errors[i-99:i+1])/100 for i in range(99, len(training_errors))]
-        plt.plot(range(99, len(training_errors)), ma_td, label="100-step MA")
-    plt.xlabel("Training steps")
-    plt.ylabel("TD-error (Smooth L1 Loss)")
-    plt.legend()
+        ma_td = [sum(training_errors[i - 99:i + 1]) / 100 for i in range(99, len(training_errors))]
+        axs[2].plot(range(99, len(training_errors)), ma_td, label="100-step MA")
+    axs[2].set_xlabel("Training Steps")
+    axs[2].set_ylabel("Smooth L1 Loss")
+    axs[2].legend()
+
     plt.tight_layout()
-    plt.savefig("plots/dqn_td_error.png", dpi=200, bbox_inches="tight")
+    plt.savefig("plots/dqn_combined_metrics.png", dpi=200, bbox_inches="tight")
     plt.show()
+
 
     # --- Quick test without rendering overhead ----------------------------
     policy_net.eval()

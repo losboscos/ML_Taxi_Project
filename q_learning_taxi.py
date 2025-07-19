@@ -102,7 +102,7 @@ def test_agent_visual(agent, n_episodes=3):
 
 if __name__ == "__main__":
     # qui definisci i valori dei tuoi hyperparametri
-    learning_rate = 0.05
+    learning_rate = 0.1
     n_episodes = 20_000
     start_epsilon = 1.0
     final_epsilon = 0.05

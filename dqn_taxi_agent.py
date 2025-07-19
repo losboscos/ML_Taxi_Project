@@ -47,8 +47,8 @@ BATCH_SIZE   = 32               # smaller batches → more frequent, low-varianc
 GAMMA        = 0.985            # slightly less emphasis on very long‐term returns
 EPS_START    = 1.0              # start fully exploring
 EPS_END      = 0.02             # almost fully greedy at the end
-NUM_EPISODES = 7_500           # more episodes so that epsilon can fully anneal
-EPS_DECAY    = 12000  # decay ε over 80% of training
+NUM_EPISODES = 7_500            # more episodes so that epsilon can fully anneal
+EPS_DECAY    = 12000            # decay ε over 80% of training
 LR           = 3e-4             # a bit smaller for extra stability
 MEM_CAP      = 50_000           # larger replay buffer for richer experience
 

@@ -28,7 +28,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-# --- Standard DQN network (used in lecture) -------------------------------
+# --- Standard DQN network -------------------------------
 class DQN(nn.Module):
     def __init__(self, n_states, n_actions):
         super().__init__()
@@ -42,7 +42,7 @@ class DQN(nn.Module):
         return self.out(x)  # outputs Q-values for all actions
 
 
-# --- Hyperparameters (tuned) ---------------------------------------------
+# --- Hyperparameters  ---------------------------------------------
 BATCH_SIZE   = 32               # smaller batches → more frequent, low-variance updates
 GAMMA        = 0.985            # slightly less emphasis on very long‐term returns
 EPS_START    = 1.0              # start fully exploring
@@ -102,7 +102,7 @@ def optimize_model():
 
 
 if __name__ == "__main__":
-    # --- Train (no render, no interactive plots) ---------------------------
+    # --- Train ---------------------------
     policy_net.train()
     best_reward = float('-inf')  # inizializza best model
 
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     plt.savefig("plots/dqn_combined_metrics.png", dpi=200, bbox_inches="tight")
     plt.show()
 
-    # --- Quick test without rendering overhead ----------------------------
+    # --- Quick test ----------------------------
     policy_net.eval()
     test_env = gym.make("Taxi-v3", render_mode="human")
     test_returns = []
